@@ -153,6 +153,55 @@ def Stream_AffinityOp : OpInterface<"AffinityOpInterface"> {
 }
 
 //===----------------------------------------------------------------------===//
+// IREE::Stream::ResourceAttrInterface
+//===----------------------------------------------------------------------===//
+
+// def Stream_ResourceAttr : AttrInterface<"ResourceAttr"> {
+//   let cppNamespace = "::mlir::iree_compiler::IREE::Stream";
+
+//   let summary = [{specifies a resource reference}];
+//   let description = [{
+//     DO NOT SUBMIT
+//   }];
+
+//   let methods = [
+//     InterfaceMethod<
+//       /*desc=*/[{
+//         DO NOT SUBMIT returns resource, timepoint
+//       }],
+//       /*retTy=*/"std::tuple<Value, Value>",
+//       /*methodName=*/"loadResource",
+//       /*args=*/(ins
+//         "Location":$loc,
+//         "Value":$awaitTimepoint,
+//         "IREE::Stream::AffinityAttr":$affinityAttr,
+//         "Type":$targetResourceType,
+//         "Value":$targetResourceSize,
+//         "IndexSet &":$indexSet,
+//         "OpBuilder &":$builder
+//       )
+//     >,
+//     InterfaceMethod<
+//       /*desc=*/[{
+//         DO NOT SUBMIT returns timepoint
+//       }],
+//       /*retTy=*/"Value",
+//       /*methodName=*/"gatherResources",
+//       /*args=*/(ins
+//         "Location":$loc,
+//         "Value":$awaitTimepoint,
+//         "IREE::Stream::AffinityAttr":$affinityAttr,
+//         // SOURCE?
+//         "Value":$targetResource,
+//         "Value":$targetResourceSize,
+//         "IndexSet &":$indexSet,
+//         "OpBuilder &":$builder
+//       )
+//     >,
+//   ];
+// }
+
+//===----------------------------------------------------------------------===//
 // IREE::Stream::StreamableOpInterface
 //===----------------------------------------------------------------------===//
 

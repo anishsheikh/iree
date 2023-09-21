@@ -245,24 +245,24 @@ struct TimepointResource {
 
 static TimepointResource buildFileRead(
     Location loc, Value awaitTimepoint, IREE::Stream::AffinityAttr affinityAttr,
-    IREE::Stream::ResourceType resourceType, StorageResource storageResource,
+    IREE::Stream::ResourceType resourceType, Location storageResourceLoc,
     Value storageResourceSize, Value storageBuffer, Value storageBufferSize,
     IndexSet &indexSet, OpBuilder &builder) {
   // Allocate the resulting storage resource of the final resource type.
   auto allocOp = builder.create<IREE::Stream::ResourceAllocOp>(
-      storageResource.loc, resourceType, storageResourceSize,
+      storageResourceLoc, resourceType, storageResourceSize,
       /*uninitialized=*/builder.getUnitAttr(), affinityAttr);
 
   // Create the file backed by the constant resource buffer.
   auto fileOp = builder.create<IREE::Stream::FileConstantOp>(
-      storageResource.loc, storageBuffer, storageBufferSize, indexSet.get(0),
+      storageResourceLoc, storageBuffer, storageBufferSize, indexSet.get(0),
       storageResourceSize, affinityAttr);
 
   // Issue asynchronous file read into the buffer.
   auto zeroI64 =
-      builder.create<arith::ConstantIntOp>(storageResource.loc, 0, 64);
+      builder.create<arith::ConstantIntOp>(storageResourceLoc, 0, 64);
   auto readOp = builder.create<IREE::Stream::FileReadOp>(
-      storageResource.loc, fileOp.getResult(), zeroI64, allocOp.getResult(),
+      storageResourceLoc, fileOp.getResult(), zeroI64, allocOp.getResult(),
       allocOp.getResultSize(0), indexSet.get(0), storageResourceSize,
       awaitTimepoint, affinityAttr);
 
@@ -276,13 +276,13 @@ static TimepointResource buildFileRead(
 // Returns a timepoint indicating the operation has completed.
 static TimepointResource buildTryMapConstantResource(
     Location loc, Value awaitTimepoint, IREE::Stream::AffinityAttr affinityAttr,
-    IREE::Stream::ResourceType resourceType, StorageResource storageResource,
+    IREE::Stream::ResourceType resourceType, Location storageResourceLoc,
     Value storageResourceSize, Value storageBuffer, Value storageBufferSize,
     IndexSet &indexSet, OpBuilder &builder) {
   // Try mapping; this may fail if the device can't use the storage buffer as
   // the type of resource requested.
   auto tryMapOp = builder.create<IREE::Stream::ResourceTryMapOp>(
-      storageResource.loc, builder.getI1Type(), resourceType, storageBuffer,
+      storageResourceLoc, builder.getI1Type(), resourceType, storageBuffer,
       indexSet.get(0), storageResourceSize, affinityAttr);
 
   // If we are able to directly map the resources then we don't need to wait.
@@ -298,10 +298,10 @@ static TimepointResource buildTryMapConstantResource(
                                               });
       },
       [&](OpBuilder &elseBuilder, Location loc) {
-        auto readResult =
-            buildFileRead(loc, awaitTimepoint, affinityAttr, resourceType,
-                          storageResource, storageResourceSize, storageBuffer,
-                          storageBufferSize, indexSet, elseBuilder);
+        auto readResult = buildFileRead(
+            loc, awaitTimepoint, affinityAttr, resourceType, storageResourceLoc,
+            storageResourceSize, storageBuffer, storageBufferSize, indexSet,
+            elseBuilder);
         elseBuilder.create<scf::YieldOp>(loc, ValueRange{
                                                   readResult.timepoint,
                                                   readResult.resource,
@@ -366,12 +366,12 @@ static Value generateUpload(Value awaitTimepoint,
     if (resourceType.getLifetime() == IREE::Stream::Lifetime::Constant) {
       uploadedResource = buildTryMapConstantResource(
           constantsOp.getLoc(), currentTimepoint, constantsOp.getAffinityAttr(),
-          resourceType, storageResource, resourceSize, storageBuffer,
+          resourceType, storageResource.loc, resourceSize, storageBuffer,
           resourceSize, indexSet, builder);
     } else {
       uploadedResource = buildFileRead(
           constantsOp.getLoc(), currentTimepoint, constantsOp.getAffinityAttr(),
-          resourceType, storageResource, resourceSize, storageBuffer,
+          resourceType, storageResource.loc, resourceSize, storageBuffer,
           resourceSize, indexSet, builder);
     }
 
